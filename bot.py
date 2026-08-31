@@ -1,10 +1,26 @@
 import os
 import sys
 import uuid
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 import motor.motor_asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
+
+# Render Web Service Alive Check Server
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+
+def run_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_server, daemon=True).start()
 
 # Config Variables
 API_ID = int(os.environ.get("API_ID", 0))
@@ -42,7 +58,6 @@ async def start_handler(client: Client, message: Message):
         caption = file_data.get("caption", "")
         file_type = file_data.get("file_type", "document")
         
-        # Send protected file (Save/Forward ကာကွယ်ထားသည်)
         try:
             if file_type == "video":
                 await client.send_video(
@@ -69,7 +84,6 @@ async def start_handler(client: Client, message: Message):
             await message.reply_text(f"Error: {e}")
             return
 
-        # Send User Log to LOG_CHANNEL
         username_str = f"@{user.username}" if user.username else "No Username"
         log_msg = (
             f"🚨 ဗီဒီယို ကြည့်ရှု/ရယူမှု မှတ်တမ်း\n\n"
@@ -97,8 +111,8 @@ async def file_store_handler(client: Client, message: Message):
         return
 
     status = await message.reply_text("⏳ ဖိုင်ကို Database ထဲသို့ သိမ်းဆည်းနေပါသည်...")
-    
-    file_type = "document"
+
+file_type = "document"
     file_id = None
     if message.video:
         file_type = "video"
@@ -120,7 +134,8 @@ async def file_store_handler(client: Client, message: Message):
         "caption": caption,
         "created_at": datetime.now()
     })
-  bot_info = await client.get_me()
+
+    bot_info = await client.get_me()
     share_link = f"https://t.me/{bot_info.username}?start={code}"
 
     reply_text = (
