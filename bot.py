@@ -1,11 +1,12 @@
 import os
 import sys
 import uuid
+import asyncio
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 import motor.motor_asyncio
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import Message
 
 # Render Web Service Alive Check Server
@@ -149,6 +150,13 @@ async def handle_media_upload(client: Client, message: Message):
     )
     await msg.edit_text(success_msg)
 
+async def main():
+    await bot.start()
+    print("Bot is successfully running!")
+    await idle()
+    await bot.stop()
+
 if __name__ == "__main__":
-    print("Bot is starting...")
-    bot.run()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main())
